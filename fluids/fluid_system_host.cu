@@ -122,7 +122,6 @@ void FluidClearCUDA ()
 	CUDA_SAFE_CALL ( cudaFree ( fbuf.mgridactive ) );
 }
 
-
 void FluidSetupCUDA ( int num, int gsrch, int3 res, float3 size, float3 delta, float3 gmin, float3 gmax, int total, int chk )
 {	
 	fcuda.pnum = num;	
@@ -180,7 +179,7 @@ void FluidSetupCUDA ( int num, int gsrch, int3 res, float3 size, float3 delta, f
 	CUDA_SAFE_CALL ( cudaMalloc ( (void**) &fbuf.mgridcnt,	fcuda.szGrid*sizeof(int) ) );
 	CUDA_SAFE_CALL ( cudaMalloc ( (void**) &fbuf.mgridoff,	fcuda.szGrid*sizeof(int) ) );
 	CUDA_SAFE_CALL ( cudaMalloc ( (void**) &fbuf.mgridactive, fcuda.szGrid*sizeof(int) ) );
-		
+				
 	CUDA_SAFE_CALL ( cudaMemcpyToSymbol ( "simData", &fcuda, sizeof(FluidParams) ) );
 	cudaThreadSynchronize ();
 

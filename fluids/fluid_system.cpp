@@ -82,7 +82,7 @@ FluidSystem::FluidSystem ()
 	m_NeighborTable = 0x0;
 	m_NeighborDist = 0x0;
 	
-	m_Param [ PMODE ]		= RUN_CUDA_FULL;//RUN_CPU_GRID;//RUN_CPU_SLOW;
+	m_Param [ PMODE ]		= RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
 	m_Param [ PEXAMPLE ]	= 1;
 	m_Param [ PGRID_DENSITY ] = 2.0;
 	m_Param [ PNUM ]		= 8192; //65536 * 128;
@@ -127,6 +127,7 @@ void FluidSystem::Setup ( bool bStart )
 
 	SetupGridAllocate ( m_Vec[PVOLMIN], m_Vec[PVOLMAX], m_Param[PSIMSCALE], m_Param[PGRIDSIZE], 1.0 );	// Setup grid
 
+	/*
 	#ifdef BUILD_CUDA
 
 		FluidClearCUDA ();
@@ -142,6 +143,7 @@ void FluidSystem::Setup ( bool bStart )
 
 		TransferToCUDA ();		// Initial transfer
 	#endif
+	*/
 }
 
 void FluidSystem::Exit ()
