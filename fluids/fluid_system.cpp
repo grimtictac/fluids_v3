@@ -692,7 +692,7 @@ void FluidSystem::Run (int width, int height)
 	case RUN_CPU_GRID:		RunSimulateCPUGrid();	break;
 	case RUN_CUDA_RADIX:	RunSimulateCUDARadix();	break;
 	case RUN_CUDA_INDEX:	RunSimulateCUDAIndex();	break;
-	case RUN_CUDA_FULL:	RunSimulateCUDAFull();	break;
+	case RUN_CUDA_FULL:	    RunSimulateCUDAFull();	break;
 	case RUN_CUDA_CLUSTER:	RunSimulateCUDACluster();	break;
 	case RUN_PLAYBACK:		RunPlayback();			break;
 	};
