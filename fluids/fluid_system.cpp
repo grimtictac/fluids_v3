@@ -280,10 +280,20 @@ void FluidSystem::SetupAddVolume ( Vector3DF min, Vector3DF max, float spacing, 
 				z = min.z+offs + (cntz-1-zp) * spacing;
 			}*/
 			p = AddParticle ();
+
+			long n;
+
 			if ( p != -1 ) {
 				(mPos+p)->Set ( x,y,z);
-				*(mClr+p) = COLORA( (x-min.x)/dx, (y-min.y)/dy, (z-min.z)/dz, 1); 
-				//*(mClr+p) = COLORA( 0.25, +0.25 + (y-min.y)*.75/dy, 0.25 + (z-min.z)*.75/dz, 1);  // (x-min.x)/dx
+				
+				//n = (n << 1) + p;
+
+				//*(mClr+p) = COLORA( (n * 1000 ) % 255,  // (x-min.x)/dx, 
+				//	                (n * 25500 ) % 255, //(y-min.y)/dy, 
+				//					(n * 888300 ) % 255, // (z-min.z)/dz, 
+				//					1); 
+				
+				*(mClr+p) = COLORA( 0.25, +0.25 + (y-min.y)*.75/dy, 0.25 + (z-min.z)*.75/dz, 1);  // (x-min.x)/dx
 			}
 		}
 	}	
