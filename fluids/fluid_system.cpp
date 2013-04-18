@@ -127,7 +127,7 @@ void FluidSystem::Setup ( bool bStart )
 
 	SetupGridAllocate ( m_Vec[PVOLMIN], m_Vec[PVOLMAX], m_Param[PSIMSCALE], m_Param[PGRIDSIZE], 1.0 );	// Setup grid
 
-	/*
+	
 	#ifdef BUILD_CUDA
 
 		FluidClearCUDA ();
@@ -143,7 +143,6 @@ void FluidSystem::Setup ( bool bStart )
 
 		TransferToCUDA ();		// Initial transfer
 	#endif
-	*/
 }
 
 void FluidSystem::Exit ()
