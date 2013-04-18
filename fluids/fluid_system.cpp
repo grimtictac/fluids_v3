@@ -143,6 +143,7 @@ void FluidSystem::Setup ( bool bStart )
 
 		TransferToCUDA ();		// Initial transfer
 	#endif
+	bfw.InitPhysics();
 }
 
 void FluidSystem::Exit ()
@@ -719,6 +720,7 @@ void FluidSystem::Run (int width, int height)
 	m_Time += m_DT;
 	m_Frame++;
 
+	bfw.RunPhysics(m_DT);
 	
 
 }
