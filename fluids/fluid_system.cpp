@@ -1964,10 +1964,17 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 		*/
 
 	// Error particles (debugging)
-	/*for (int n=0; n < NumPoints(); n++) {
-		if ( ALPH(*(mClr+n))==0.9 ) 
-			DrawParticle ( n, 12, 14, Vector3DF(1,0,0) );
-	}
+	//for (int n=0; n < NumPoints(); n++) {
+	//	if ( ALPH(*(mClr+n))==0.9 ) 
+	//		DrawParticle ( n, 12, 14, Vector3DF(1,0,0) );
+	//}
+
+	//static int sel = 0;
+	//sel++;
+
+	//if( sel == 1000 ){ sel = 0; mSelected++; }
+
+	mSelected = 100;
 
 	// Draw selected particle
 	DrawNeighbors ( mSelected );
@@ -1984,7 +1991,6 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 	}
 	glColor3f ( 1.0, 1.0, 1.0 );
 	DrawCell ( gc.x, gc.y, gc.z );
-	glEnable ( GL_DEPTH_TEST );*/
 }
 
 std::string FluidSystem::getFilename ( int n )
