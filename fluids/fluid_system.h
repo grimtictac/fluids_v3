@@ -34,6 +34,7 @@
 	#include "gl_helper.h"
 	#include "xml_settings.h"
 
+	#include "..\bulletRigids.h"
 	#define MAX_PARAM			50
 	#define GRID_UCHAR			0xFF
 	#define GRID_UNDEF			4294967295
@@ -364,6 +365,7 @@
 
 		// XML Settings file
 		XmlSettings				xml;
+		BulletFluidWrapper bfw;
 	};	
 
 #endif
