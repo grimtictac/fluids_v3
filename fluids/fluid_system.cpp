@@ -43,6 +43,10 @@
 
 #define EPSILON			0.00001f			//for collision detection
 
+#define N 10000
+btVector3* points;
+btVector3* correctedPoints;
+
 void FluidSystem::TransferToCUDA ()
 { 
 	CopyToCUDA ( (float*) mPos, (float*) mVel, (float*) mVelEval, (float*) mForce, mPressure, mDensity, mClusterCell, mGridNext, (char*) mClr ); 
@@ -98,6 +102,13 @@ FluidSystem::FluidSystem ()
 		error.Exit ();
 	}
 
+	points = new btVector3[N];
+	correctedPoints = new btVector3[N];
+
+	for(int i=0; i<N; i++)
+	{
+		points[i] = btVector3(i,0,i);
+	}
 }
 
 void FluidSystem::Setup ( bool bStart )
@@ -143,6 +154,7 @@ void FluidSystem::Setup ( bool bStart )
 
 		TransferToCUDA ();		// Initial transfer
 	#endif
+
 	bfw.InitPhysics();
 }
 
@@ -721,7 +733,6 @@ void FluidSystem::Run (int width, int height)
 	m_Frame++;
 
 	bfw.RunPhysics(m_DT);
-	
 
 }
 
@@ -1993,6 +2004,52 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 	}
 	glColor3f ( 1.0, 1.0, 1.0 );
 	DrawCell ( gc.x, gc.y, gc.z );
+	
+	Vector3DF pos(0,0,0);
+
+	btTransform btt;
+	bfw.m_body->getMotionState()->getWorldTransform(btt);
+	pos.Set( btt.getOrigin().getX(), btt.getOrigin().getY(), btt.getOrigin().getZ() );
+
+	//btTransform p(btMatrix3x3(), btVector3(1,0,0));
+
+//btVector3 relativeForce = btVector3(0,10,0);
+//btMatrix3x3& boxRot = boxRigidBody->getWorldTransform().getBasis();
+//btVector3 correctedForce = boxRot * relativeForce;
+//boxRigidBody->applyCentralForce(correctedForce);
+
+btRigidBody* boxRigidBody = bfw.m_body;
+btMatrix3x3& boxRot = boxRigidBody->getWorldTransform().getBasis();
+
+for(int i=0; i<N; i++)
+{
+	correctedPoints[i] = boxRot * points[i];	
+	DrawCircle( pos + Vector3DF(correctedPoints[i].getX(),
+						        correctedPoints[i].getY(), 
+								correctedPoints[i].getZ() ), 
+								5, 
+								Vector3DF(255,100,0), 
+								cam );
+}
+
+btVector3 relativePos1 = btVector3(0,100,0);
+btVector3 relativePos2 = btVector3(100,0,0);
+btVector3 relativePos3 = btVector3(0,0,100);
+
+btVector3 correctedPos1 = boxRot * relativePos1;
+btVector3 correctedPos2 = boxRot * relativePos2;
+btVector3 correctedPos3 = boxRot * relativePos3;
+	
+	// Box
+	DrawCircle( pos + Vector3DF(correctedPos1.getX(),correctedPos1.getY(), correctedPos1.getZ() ), 5, Vector3DF(255,100,0), cam );
+	DrawCircle( pos + Vector3DF(correctedPos2.getX(),correctedPos2.getY(), correctedPos2.getZ() ), 5, Vector3DF(255,100,0), cam );
+	DrawCircle( pos + Vector3DF(correctedPos3.getX(),correctedPos3.getY(), correctedPos3.getZ() ), 5, Vector3DF(255,100,0), cam );
+
+	DrawCircle( pos, 6, Vector3DF(0,255,100), cam );
+	DrawCircle( pos, 7, Vector3DF(100,0,100), cam );
+	DrawCircle( pos, 8, Vector3DF(0,100,0), cam );
+
+	glEnable ( GL_DEPTH_TEST );
 }
 
 std::string FluidSystem::getFilename ( int n )
