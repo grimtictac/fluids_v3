@@ -100,16 +100,34 @@ void BulletFluidWrapper::InitPhysics()
 					m_dynamicsWorld->addRigidBody(m_body);
 	//			}
 	//		}
-	//	}
 	}
 
+	InitShell();
 }
 
+void BulletFluidWrapper::InitShell()
+{
+
+	m_numShellParticles = 10000;
+	m_shellParticles = new Vector3DF[m_numShellParticles];
+
+	for(int i=0; i<m_numShellParticles; i++)
+	{
+		float x = sin(float(i)); 
+		float z = cos(float(i));
+
+		m_shellParticles[i] = Vector3DF( (int(x*100)%25)/20 , i%25 , (int(z*100)%25)/20 );
+	}
+}
 
 void BulletFluidWrapper::RunPhysics(double dT)
 {
 	//m_body->applyCentralForce(btVector3(10,10,20));
-	m_body->applyForce(btVector3(0,1,0),btVector3(0,0,1) );
+	
+	static float bouy = 0;
+	bouy += 0.01;
+	
+	//m_body->applyForce(btVector3(0,1,5),btVector3(cos(bouy),0,sin(bouy)) );
 
 	m_dynamicsWorld->stepSimulation( dT );
 }

@@ -2,12 +2,18 @@
 	#define	DEF_BULLET_RIGIDS
 
 #include "btBulletDynamicsCommon.h"
+#include "vector.h"
 
 
 
 class BulletFluidWrapper
 {
 public:
+
+
+	int m_numShellParticles;
+
+	Vector3DF* m_shellParticles;
 
 	btRigidBody* m_body;
 
@@ -24,6 +30,7 @@ public:
 
 	btDefaultCollisionConfiguration* m_collisionConfiguration;
 
+	void InitShell();
 	void InitPhysics();
 	void RunPhysics(double dT);
 
