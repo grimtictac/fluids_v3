@@ -87,7 +87,7 @@ FluidSystem::FluidSystem ()
 	m_NeighborTable = 0x0;
 	m_NeighborDist = 0x0;
 	
-	m_Param [ PMODE ]		=  RUN_CPU_SLOW; //RUN_CUDA_FULL; // RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
+	m_Param [ PMODE ]		=  RUN_CPU_GRID; //RUN_CUDA_FULL; // RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
 	m_Param [ PEXAMPLE ]	= 1;
 	m_Param [ PGRID_DENSITY ] = 2.0;
 	m_Param [ PNUM ]		= 8192; //65536 * 128;
@@ -673,6 +673,9 @@ void FluidSystem::RunSimulateCPUGrid ()
 {
 	mint::Time start;
 	start.SetSystemTime ( ACC_NSEC );
+
+	PositionShellParticles();
+
 	InsertParticles ();
 	record ( PTIME_INSERT, "Insert CPU", start );			
 	start.SetSystemTime ( ACC_NSEC );
@@ -1297,7 +1300,7 @@ void FluidSystem::InsertParticles ()
 	m_Param[ PSTAT_OCCUPY ] = 0.0;
 	m_Param [ PSTAT_GRIDCNT ] = 0.0;
 
-	for ( int n=0; n < NumPoints(); n++ ) {
+	for ( int n=0; n < NumPoints() + NumShellPoints(); n++ ) {
 		gs = getGridCell ( *ppos, gc );
 		if ( gc.x >= 1 && gc.x <= xns && gc.y >= 1 && gc.y <= yns && gc.z >= 1 && gc.z <= zns ) {
 			// put current particle at head of grid cell, pointing to next in list (previous head of cell)
@@ -1472,7 +1475,7 @@ void FluidSystem::ComputePressureGrid ()
 	int nbrcnt = 0;
 	int srch = 0;
 
-	for ( i=0; i < NumPoints(); i++ ) {
+	for ( i=0; i < NumPoints() + NumShellPoints(); i++ ) {
 
 		sum = 0.0;
 
@@ -1543,7 +1546,7 @@ void FluidSystem::ComputeForceGrid ()
 	float		d2 = d*d;
 	int			nadj = (m_GridRes.z + 1)*m_GridRes.x + 1;
 
-	for ( i=0; i < NumPoints(); i++ ) {
+	for ( i=0; i < NumPoints() + NumShellPoints(); i++ ) {
 
 		iforce->Set ( 0, 0, 0 );
 
@@ -2076,7 +2079,7 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 	//mSelected = 100;
 
 	// Draw selected particle
-	DrawNeighbors ( mSelected );
+	DrawNeighbors ( 2 );
 	DrawParticle ( mSelected, 8, 12, Vector3DF(1,1,1) );
 	DrawCircle ( *(mPos+mSelected), m_Param[PSMOOTHRADIUS]/m_Param[PSIMSCALE], Vector3DF(1,1,0), cam );
 	Vector3DI gc;
