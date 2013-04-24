@@ -183,63 +183,69 @@ void FluidSystem::Exit ()
 
 
 // Allocate particle memory
-void FluidSystem::AllocateParticles ( int cnt )
+void FluidSystem::AllocateParticles ( int cnt, int shellCnt )
 {
 	int nump = 0;		// number to copy from previous data
 
+	int total = cnt + shellCnt;
+
 	Vector3DF* srcPos = mPos;
-	mPos = (Vector3DF*)		malloc ( cnt*sizeof(Vector3DF) );
+	mPos = (Vector3DF*)		malloc ( total*sizeof(Vector3DF) );
 	if ( srcPos != 0x0 )	{ memcpy ( mPos, srcPos, nump *sizeof(Vector3DF)); free ( srcPos ); }
 
+	mPosShell = mPos + cnt;
+
 	DWORD* srcClr = mClr;	
-	mClr = (DWORD*)			malloc ( cnt*sizeof(DWORD) );
+	mClr = (DWORD*)			malloc ( total*sizeof(DWORD) );
 	if ( srcClr != 0x0 )	{ memcpy ( mClr, srcClr, nump *sizeof(DWORD)); free ( srcClr ); }
 	
 	Vector3DF* srcVel = mVel;
-	mVel = (Vector3DF*)		malloc ( cnt*sizeof(Vector3DF) );	
+	mVel = (Vector3DF*)		malloc ( total*sizeof(Vector3DF) );	
 	if ( srcVel != 0x0 )	{ memcpy ( mVel, srcVel, nump *sizeof(Vector3DF)); free ( srcVel ); }
 
 	Vector3DF* srcVelEval = mVelEval;
-	mVelEval = (Vector3DF*)	malloc ( cnt*sizeof(Vector3DF) );	
+	mVelEval = (Vector3DF*)	malloc ( total*sizeof(Vector3DF) );	
 	if ( srcVelEval != 0x0 ) { memcpy ( mVelEval, srcVelEval, nump *sizeof(Vector3DF)); free ( srcVelEval ); }
 
 	unsigned short* srcAge = mAge;
-	mAge = (unsigned short*) malloc ( cnt*sizeof(unsigned short) );
+	mAge = (unsigned short*) malloc ( total*sizeof(unsigned short) );
 	if ( srcAge != 0x0 )	{ memcpy ( mAge, srcAge, nump *sizeof(unsigned short)); free ( srcAge ); }
 
 	float* srcPress = mPressure;
-	mPressure = (float*) malloc ( cnt*sizeof(float) );
+	mPressure = (float*) malloc ( total*sizeof(float) );
 	if ( srcPress != 0x0 ) { memcpy ( mPressure, srcPress, nump *sizeof(float)); free ( srcPress ); }	
-
+	
 	float* srcDensity = mDensity;
-	mDensity = (float*) malloc ( cnt*sizeof(float) );
+	mDensity = (float*) malloc ( total*sizeof(float) );
 	if ( srcDensity != 0x0 ) { memcpy ( mDensity, srcDensity, nump *sizeof(float)); free ( srcDensity ); }	
 
 	Vector3DF* srcForce = mForce;
-	mForce = (Vector3DF*)	malloc ( cnt*sizeof(Vector3DF) );
+	mForce = (Vector3DF*)	malloc ( total*sizeof(Vector3DF) );
 	if ( srcForce != 0x0 )	{ memcpy ( mForce, srcForce, nump *sizeof(Vector3DF)); free ( srcForce ); }
 
+	mForceShell = mForce + cnt;
+
 	uint* srcCell = mClusterCell;
-	mClusterCell = (uint*)	malloc ( cnt*sizeof(uint) );
+	mClusterCell = (uint*)	malloc ( total*sizeof(uint) );
 	if ( srcCell != 0x0 )	{ memcpy ( mClusterCell, srcCell, nump *sizeof(uint)); free ( srcCell ); }
 
 	uint* srcGCell = mGridCell;
-	mGridCell = (uint*)	malloc ( cnt*sizeof(uint) );
+	mGridCell = (uint*)	malloc ( total*sizeof(uint) );
 	if ( srcGCell != 0x0 )	{ memcpy ( mGridCell, srcGCell, nump *sizeof(uint)); free ( srcGCell ); }
 
 	uint* srcNext = mGridNext;
-	mGridNext = (uint*)	malloc ( cnt*sizeof(uint) );
+	mGridNext = (uint*)	malloc ( total*sizeof(uint) );
 	if ( srcNext != 0x0 )	{ memcpy ( mGridNext, srcNext, nump *sizeof(uint)); free ( srcNext ); }
 	
 	uint* srcNbrNdx = mNbrNdx;
-	mNbrNdx = (uint*)		malloc ( cnt*sizeof(uint) );
+	mNbrNdx = (uint*)		malloc ( total*sizeof(uint) );
 	if ( srcNbrNdx != 0x0 )	{ memcpy ( mNbrNdx, srcNbrNdx, nump *sizeof(uint)); free ( srcNbrNdx ); }
 	
 	uint* srcNbrCnt = mNbrCnt;
-	mNbrCnt = (uint*)		malloc ( cnt*sizeof(uint) );
+	mNbrCnt = (uint*)		malloc ( total*sizeof(uint) );
 	if ( srcNbrCnt != 0x0 )	{ memcpy ( mNbrCnt, srcNbrCnt, nump *sizeof(uint)); free ( srcNbrCnt ); }
 
-	m_Param[PSTAT_PMEM] = 68 * 2 * cnt;
+	m_Param[PSTAT_PMEM] = 68 * 2 * total;
 
 	mMaxPoints = cnt;
 }
