@@ -1,8 +1,8 @@
 #include "bulletRigids.h"
 
-#define START_POS_X -5
-#define START_POS_Y -5
-#define START_POS_Z -3
+#define START_POS_X -0
+#define START_POS_Y -15
+#define START_POS_Z -0
 
 ///create 125 (5x5x5) dynamic object
 #define ARRAY_SIZE_X 5
@@ -70,9 +70,9 @@ void BulletFluidWrapper::InitPhysics()
 		if (isDynamic)
 			colShape->calculateLocalInertia(mass,localInertia);
 
-		float start_x = START_POS_X - ARRAY_SIZE_X/2;
-		float start_y = START_POS_Y;
-		float start_z = START_POS_Z - ARRAY_SIZE_Z/2;
+		float start_x = 0; // START_POS_X - ARRAY_SIZE_X/2;
+		float start_y = 15; //START_POS_Y;
+		float start_z = 0; //START_POS_Z - ARRAY_SIZE_Z/2;
 
 		//for (int k=0;k<ARRAY_SIZE_Y;k++)
 		//{
