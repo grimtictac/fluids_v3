@@ -61,7 +61,7 @@ void BulletFluidWrapper::InitPhysics()
 		btTransform startTransform;
 		startTransform.setIdentity();
 
-		btScalar	mass(1.f);
+		btScalar	mass(0.1f);
 
 		//rigidbody is dynamic if and only if mass is non zero, otherwise static
 		bool isDynamic = (mass != 0.f);
@@ -71,7 +71,7 @@ void BulletFluidWrapper::InitPhysics()
 			colShape->calculateLocalInertia(mass,localInertia);
 
 		float start_x = 0; // START_POS_X - ARRAY_SIZE_X/2;
-		float start_y = 15; //START_POS_Y;
+		float start_y = 25; //START_POS_Y;
 		float start_z = 0; //START_POS_Z - ARRAY_SIZE_Z/2;
 
 		//for (int k=0;k<ARRAY_SIZE_Y;k++)
@@ -113,10 +113,12 @@ void BulletFluidWrapper::InitShell()
 
 	for(int i=0; i<m_numShellParticles; i++)
 	{
-		float x = sin(float(i)); 
-		float z = cos(float(i));
+		float x = (float(rand()%1000)/400)-10; //sin(float(i)) +  
+		float y = (float(rand()%1000)/300)-10;
+		float z = (float(rand()%1000)/200)-10; //cos(float(i)) + 
 
-		m_shellParticles[i] = Vector3DF( (int(x*100)%25)/20 , i%25 , (int(z*100)%25)/20 );
+
+		m_shellParticles[i] = Vector3DF( x , y , z );
 	}
 }
 
