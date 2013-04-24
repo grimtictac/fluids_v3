@@ -43,9 +43,9 @@
 
 #define EPSILON			0.00001f			//for collision detection
 
-#define N 10000
-btVector3* points;
-btVector3* correctedPoints;
+////////////#define N 10000
+////////////btVector3* points;
+////////////btVector3* correctedPoints;
 
 void FluidSystem::TransferToCUDA ()
 { 
@@ -60,6 +60,7 @@ void FluidSystem::TransferFromCUDA ()
 FluidSystem::FluidSystem ()
 {
 	mNumPoints = 0;
+
 	mMaxPoints = 0;
 	mPackBuf = 0x0;
 	mPackGrid = 0x0;
@@ -86,12 +87,12 @@ FluidSystem::FluidSystem ()
 	m_NeighborTable = 0x0;
 	m_NeighborDist = 0x0;
 	
-	m_Param [ PMODE ]		= RUN_CUDA_FULL; // RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
+	m_Param [ PMODE ]		=  RUN_CPU_SLOW; //RUN_CUDA_FULL; // RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
 	m_Param [ PEXAMPLE ]	= 1;
 	m_Param [ PGRID_DENSITY ] = 2.0;
 	m_Param [ PNUM ]		= 8192; //65536 * 128;
-
-
+	m_Param [ PSHELLNUM ]   = 100;
+	
 	m_Toggle [ PDEBUG ]		=	false;
 	m_Toggle [ PUSE_GRID ]	=	false;
 	m_Toggle [ PPROFILE ]	=	false;
@@ -102,13 +103,13 @@ FluidSystem::FluidSystem ()
 		error.Exit ();
 	}
 
-	points = new btVector3[N];
-	correctedPoints = new btVector3[N];
+	////////points = new btVector3[N];
+	////////correctedPoints = new btVector3[N];
 
-	for(int i=0; i<N; i++)
-	{
-		points[i] = btVector3(i,0,i);
-	}
+	////////for(int i=0; i<N; i++)
+	////////{
+	////////	points[i] = btVector3(i,0,i);
+	////////}
 }
 
 void FluidSystem::Setup ( bool bStart )
@@ -120,6 +121,7 @@ void FluidSystem::Setup ( bool bStart )
 
 	ClearNeighborTable ();
 	mNumPoints = 0;
+	mNumShellPoints = m_Param[PSHELLNUM];
 	
 	SetupDefaultParams ();
 	
@@ -127,17 +129,25 @@ void FluidSystem::Setup ( bool bStart )
 
 	m_Param [PGRIDSIZE] = 2*m_Param[PSMOOTHRADIUS] / m_Param[PGRID_DENSITY];
 
-	AllocateParticles ( m_Param[PNUM] );
+	AllocateParticles ( m_Param[PNUM], m_Param[PSHELLNUM] );
 	AllocatePackBuf ();
+
+	SetupShell();
 	
 	SetupKernels ();
 	
 	SetupSpacing ();
 
 	SetupAddVolume ( m_Vec[PINITMIN], m_Vec[PINITMAX], m_Param[PSPACING], 0.1 );													// Create the particles
+	
+	if( m_Param[PSECOND_VOLUME] != 0 )
+	{
+		SetupAddVolume ( m_Vec[PINITMIN2], m_Vec[PINITMAX2], m_Param[PSPACING], 0.1 );													// Create the particles
+	}
+	
 
 	SetupGridAllocate ( m_Vec[PVOLMIN], m_Vec[PVOLMAX], m_Param[PSIMSCALE], m_Param[PGRIDSIZE], 1.0 );	// Setup grid
-
+	
 	
 	#ifdef BUILD_CUDA
 
@@ -476,13 +486,13 @@ void FluidSystem::ComputePressureSlow ()
 	int nbrcnt = 0;
 	int srch = 0;
 
-	for ( i=0; i < NumPoints(); i++ ) 
+	for ( i=0; i < NumPoints() + NumShellPoints(); i++ ) 
 	{
 		mGridCell[i]=0;
 
 		sum = 0.0;
 
-		for ( j=0; j < NumPoints(); j++ ) 
+		for ( j=0; j < NumPoints() + NumShellPoints(); j++ ) 
 		{
 			if ( i==j ) 
 				continue;
@@ -542,11 +552,11 @@ void FluidSystem::ComputeForceSlow ()
 	float		d2 = d*d;
 	int			nadj = (m_GridRes.z + 1)*m_GridRes.x + 1;
 
-	for ( i=0; i < NumPoints(); i++ ) 
+	for ( i=0; i < NumPoints() + NumShellPoints(); i++ ) 
 	{
 		iforce->Set ( 0, 0, 0 );
 
-		for ( j=0; j < NumPoints(); j++ ) 
+		for ( j=0; j < NumPoints() + NumShellPoints(); j++ ) 
 		{
 
 			if ( i==j ) 
@@ -585,11 +595,65 @@ void FluidSystem::ComputeForceSlow ()
 	}
 }
 
+void FluidSystem::PositionShellParticles()
+{
+	
+	btRigidBody* boxRigidBody = bfw.m_body;
+	btVector3&   boxPos = boxRigidBody->getWorldTransform().getOrigin();
+	btMatrix3x3& boxRot = boxRigidBody->getWorldTransform().getBasis();
+		
+	for( int i=0; i<NumShellPoints(); i++ )
+	{
+		Vector3DF p = bfw.m_shellParticles[i];
+		btVector3 localPos( p.x, p.y, p.z );
+		localPos = boxRot * localPos;
+
+		btVector3 worldPos = boxPos + localPos;
+		mPosShell[i] = Vector3DF( worldPos.x(), worldPos.y(), worldPos.z() );
+	}
+
+
+}
+
+void FluidSystem::AccumulateRigidForces()
+{
+	btVector3 f,p;
+	Vector3DF* mF;
+	Vector3DF* mP;
+
+	btVector3 ff(0,0,0);
+
+	for( int i=0; i<NumShellPoints(); i++ )
+	{
+		mF = mForceShell + i;
+		mP = &bfw.m_shellParticles[i];
+
+		f = btVector3(mF->x,
+					  mF->y,
+					  mF->z);
+		
+		p = btVector3(mP->x,
+					  mP->y,
+					  mP->z);
+
+		ff += f;
+
+		if( f.length() > 0 && f.length() < 1000 )	
+		{
+			bfw.m_body->applyForce( f, p );
+		}
+	}
+
+}
+
 void FluidSystem::RunSimulateCPUSlow ()
 {
 	mint::Time start;
 	start.SetSystemTime ( ACC_NSEC );
-	InsertParticles();//why?
+	//InsertParticles();//why?
+
+	PositionShellParticles();
+
 	record ( PTIME_INSERT, "Insert CPU", start );			
 	start.SetSystemTime ( ACC_NSEC );
 	ComputePressureSlow ();
@@ -600,6 +664,9 @@ void FluidSystem::RunSimulateCPUSlow ()
 	start.SetSystemTime ( ACC_NSEC );
 	Advance ();
 	record ( PTIME_ADVANCE, "Advance CPU", start );
+	start.SetSystemTime ( ACC_NSEC );
+	AccumulateRigidForces();
+	record( PTIME_ACCUM, "Accumulate Forces", start );
 }
 
 void FluidSystem::RunSimulateCPUGrid ()
@@ -650,6 +717,9 @@ void FluidSystem::RunSimulateCUDAFull ()
 {
 	mint::Time start;
 	start.SetSystemTime ( ACC_NSEC );
+
+	PositionShellParticles();
+
 	InsertParticlesCUDA ( 0x0, 0x0, 0x0 );
 	record ( PTIME_INSERT, "Insert CUDA", start );			
 	start.SetSystemTime ( ACC_NSEC );
@@ -696,10 +766,10 @@ void FluidSystem::RunSimulateCUDACluster ()
 
 void FluidSystem::EmitParticles ()
 {
-	if ( m_Vec[PEMIT_RATE].x > 0 && (++m_Frame) % (int) m_Vec[PEMIT_RATE].x == 0 ) {
+	//if ( m_Vec[PEMIT_RATE].x > 0 && (++m_Frame) % (int) m_Vec[PEMIT_RATE].x == 0 ) {
 		float ss = m_Param [ PDIST ] / m_Param[ PSIMSCALE ];		// simulation scale (not Schutzstaffel)
 		AddEmit ( ss ); 
-	}
+	//}
 }
 
 
@@ -726,6 +796,8 @@ void FluidSystem::Run (int width, int height)
 	case RUN_PLAYBACK:		RunPlayback();			break;
 	};
 
+	EmitParticles ();
+
 	/*if ( mMode == RUN_RECORD ) {
 		start.SetSystemTime ( ACC_NSEC );
 		Record ();
@@ -740,6 +812,7 @@ void FluidSystem::Run (int width, int height)
 
 	bfw.RunPhysics(m_DT);
 
+	
 }
 
 void FluidSystem::AllocatePackBuf ()
@@ -873,7 +946,8 @@ void FluidSystem::Advance ()
 	float*		pdensity = mDensity;
 
 	// Advance each particle
-	for ( int n=0; n < NumPoints(); n++ ) {
+	int n=0;
+	for (; n < NumPoints(); n++ ) {
 
 		if ( mGridCell[n] == GRID_UNDEF) continue;
 
@@ -1047,6 +1121,12 @@ void FluidSystem::Advance ()
 		ppress++;
 		pdensity++;
 	}
+
+	//for( int k=0; k<NumShellPoints(); k++ )
+	//{
+	//	(ppos++)->Set(k*10,k*10,k*10);
+	//}
+
 
 }
 
@@ -1805,17 +1885,17 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 		glEnable ( GL_POINT_SIZE );		
 		glEnable( GL_BLEND ); 
 		glBindBufferARB ( GL_ARRAY_BUFFER_ARB, mVBO[0] );
-		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, NumPoints()*sizeof(Vector3DF), mPos, GL_DYNAMIC_DRAW_ARB);		
+		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, (NumPoints() + NumShellPoints()) *sizeof(Vector3DF), mPos, GL_DYNAMIC_DRAW_ARB);		
 		glVertexPointer ( 3, GL_FLOAT, 0, 0x0 );				
 		glBindBufferARB ( GL_ARRAY_BUFFER_ARB, mVBO[1] );
-		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, NumPoints()*sizeof(uint), mClr, GL_DYNAMIC_DRAW_ARB);
+		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, (NumPoints() + NumShellPoints())*sizeof(uint), mClr, GL_DYNAMIC_DRAW_ARB);
 		glColorPointer ( 4, GL_UNSIGNED_BYTE, 0, 0x0 ); 
 		glEnableClientState ( GL_VERTEX_ARRAY );
 		glEnableClientState ( GL_COLOR_ARRAY );          
 		glNormal3f ( 0, 0.001, 1 );
 		glColor3f ( 1, 1, 1 );
 		//glLoadMatrixf ( view_mat );
-		glDrawArrays ( GL_POINTS, 0, NumPoints() );
+		glDrawArrays ( GL_POINTS, 0, (NumPoints() + NumShellPoints()) );
 		glDisableClientState ( GL_VERTEX_ARRAY );
 		glDisableClientState ( GL_COLOR_ARRAY );
 		} break;
@@ -1851,10 +1931,10 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 
 		// Point buffers
 		glBindBufferARB ( GL_ARRAY_BUFFER_ARB, mVBO[0] );
-		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, NumPoints()*sizeof(Vector3DF), mPos, GL_DYNAMIC_DRAW_ARB);		
+		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, (NumPoints() + NumShellPoints())*sizeof(Vector3DF), mPos, GL_DYNAMIC_DRAW_ARB);		
 		glVertexPointer ( 3, GL_FLOAT, 0, 0x0 );				
 		glBindBufferARB ( GL_ARRAY_BUFFER_ARB, mVBO[1] );
-		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, NumPoints()*sizeof(uint), mClr, GL_DYNAMIC_DRAW_ARB);
+		glBufferDataARB ( GL_ARRAY_BUFFER_ARB, (NumPoints() + NumShellPoints())*sizeof(uint), mClr, GL_DYNAMIC_DRAW_ARB);
 		glColorPointer ( 4, GL_UNSIGNED_BYTE, 0, 0x0 ); 
 		glEnableClientState ( GL_VERTEX_ARRAY );
 		glEnableClientState ( GL_COLOR_ARRAY );
@@ -1862,7 +1942,7 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 		// Render - Point Sprites
 		glNormal3f ( 0, 1, 0.001  );
 		glColor3f ( 1, 1, 1 );
-		glDrawArrays ( GL_POINTS, 0, NumPoints() );
+		glDrawArrays ( GL_POINTS, 0, (NumPoints() + NumShellPoints()) );
 
 		// Restore state
 		glDisableClientState ( GL_VERTEX_ARRAY );
@@ -1993,7 +2073,7 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 
 	//if( sel == 1000 ){ sel = 0; mSelected++; }
 
-	mSelected = 100;
+	//mSelected = 100;
 
 	// Draw selected particle
 	DrawNeighbors ( mSelected );
@@ -2027,20 +2107,29 @@ void FluidSystem::Draw ( Camera3D& cam, float rad )
 btRigidBody* boxRigidBody = bfw.m_body;
 btMatrix3x3& boxRot = boxRigidBody->getWorldTransform().getBasis();
 
-for(int i=0; i<N; i++)
-{
-	correctedPoints[i] = boxRot * points[i];	
-	DrawCircle( pos + Vector3DF(correctedPoints[i].getX(),
-						        correctedPoints[i].getY(), 
-								correctedPoints[i].getZ() ), 
-								5, 
-								Vector3DF(255,100,0), 
-								cam );
-}
+//////////////for(int i=0; i<N; i++)
+//////////////{
+//////////////	correctedPoints[i] = boxRot * points[i];	
+//////////////	DrawCircle( pos + Vector3DF(correctedPoints[i].getX(),
+//////////////						        correctedPoints[i].getY(), 
+//////////////								correctedPoints[i].getZ() ), 
+//////////////								5, 
+//////////////								Vector3DF(255,100,0), 
+//////////////								cam );
+//////////////}
 
-btVector3 relativePos1 = btVector3(0,100,0);
-btVector3 relativePos2 = btVector3(100,0,0);
-btVector3 relativePos3 = btVector3(0,0,100);
+if( m_Toggle[PDRAW_SOLID] )
+
+	for( int i=0; i<NumShellPoints(); i++ )
+	{
+		DrawCircle( mPosShell[i], 2, Vector3DF(0,200, 0), cam );
+
+	}
+
+
+btVector3 relativePos1 = btVector3(0,10,0);
+btVector3 relativePos2 = btVector3(10,0,0);
+btVector3 relativePos3 = btVector3(0,0,10);
 
 btVector3 correctedPos1 = boxRot * relativePos1;
 btVector3 correctedPos2 = boxRot * relativePos2;
@@ -2051,9 +2140,9 @@ btVector3 correctedPos3 = boxRot * relativePos3;
 	DrawCircle( pos + Vector3DF(correctedPos2.getX(),correctedPos2.getY(), correctedPos2.getZ() ), 5, Vector3DF(255,100,0), cam );
 	DrawCircle( pos + Vector3DF(correctedPos3.getX(),correctedPos3.getY(), correctedPos3.getZ() ), 5, Vector3DF(255,100,0), cam );
 
-	DrawCircle( pos, 6, Vector3DF(0,255,100), cam );
-	DrawCircle( pos, 7, Vector3DF(100,0,100), cam );
-	DrawCircle( pos, 8, Vector3DF(0,100,0), cam );
+	//DrawCircle( pos, 6, Vector3DF(0,255,100), cam );
+	//DrawCircle( pos, 7, Vector3DF(100,0,100), cam );
+	//DrawCircle( pos, 8, Vector3DF(0,100,0), cam );
 
 	glEnable ( GL_DEPTH_TEST );
 }
@@ -2171,7 +2260,7 @@ void FluidSystem::RunPlayback ()
 	
 	// Allocate extra memory if needed
 	if ( mNumPoints > mMaxPoints ) {
-		AllocateParticles ( mNumPoints );
+		AllocateParticles ( mNumPoints, mNumShellPoints );
 		AllocatePackBuf ();
 	}
 	
@@ -2377,13 +2466,13 @@ void FluidSystem::SetupDefaultParams ()
 	
 	m_Vec [ PPOINT_GRAV_POS ].Set ( 0, 50, 0 );
 	m_Vec [ PPLANE_GRAV_DIR ].Set ( 0, -9.8, 0 );
-	m_Vec [ PEMIT_POS ].Set ( 0, 0, 0 );
-	m_Vec [ PEMIT_RATE ].Set ( 0, 0, 0 );
+	m_Vec [ PEMIT_POS ].Set ( 10, 50, 10 );
+	m_Vec [ PEMIT_RATE ].Set ( 10, 10, 10 );
 	m_Vec [ PEMIT_ANG ].Set ( 0, 90, 1.0 );
 	m_Vec [ PEMIT_DANG ].Set ( 0, 0, 0 );
 
 	// Default sim config
-	m_Toggle [ PRUN ] = true;				// Run integrator
+	m_Toggle [ PRUN ] = false;				// Run integrator
 	m_Param [PGRIDSIZE] = m_Param[PSMOOTHRADIUS] * 2;
 	m_Param [PDRAWMODE] = 2;
 	m_Param [PDRAWGRID] = 0;				// No grid 
@@ -2424,8 +2513,15 @@ void FluidSystem::ParseXML ( std::string name, int id, bool bStart )
 	
 	xml.assignValueV3 ( &m_Vec[PVOLMIN],		"VolMin" );
 	xml.assignValueV3 ( &m_Vec[PVOLMAX],		"VolMax" );
+
 	xml.assignValueV3 ( &m_Vec[PINITMIN],		"InitMin" );
 	xml.assignValueV3 ( &m_Vec[PINITMAX],		"InitMax" );
+
+	xml.assignValueV3 ( &m_Vec[PINITMIN2],		"InitMin2" );
+	xml.assignValueV3 ( &m_Vec[PINITMAX2],		"InitMax2" );
+
+	xml.assignValueD ( &m_Param[PSECOND_VOLUME], "SecondVolume" );
+
 	xml.assignValueV3 ( &m_Vec[PPOINT_GRAV_POS],	"PointGravPos" );
 	xml.assignValueV3 ( &m_Vec[PPLANE_GRAV_DIR],	"PlaneGravDir" );
 
@@ -2525,6 +2621,15 @@ void FluidSystem::SetupSpacing ()
 	m_Vec[PBOUNDMAX] = m_Vec[PVOLMAX];		m_Vec[PBOUNDMAX] -= 2.0*(m_Param[PGRIDSIZE] / m_Param[PSIMSCALE]);
 }
 
+void FluidSystem::SetupShell()
+{
+	for(int i=0; i<NumShellPoints(); i++)
+	{
+		/*mPosShell[i] = Vector3DF(sin(float(i))*100,tan(float(i))*100,cos(float(i))*100);*/
+		mPosShell[i] = Vector3DF(sin(float(i))*100,0,cos(float(i))*100);
+	}
+
+}
 
 void FluidSystem::TestPrefixSum ( int num )
 {

@@ -36,7 +36,7 @@
 
 	#include "..\bulletRigids.h"
 
-	#define MAX_PARAM			50
+	#define MAX_PARAM			150
 	#define GRID_UCHAR			0xFF
 	#define GRID_UNDEF			4294967295
 
@@ -100,7 +100,11 @@
 	#define PTIME_TOGPU			45
 	#define PTIME_FROMGPU		46
 	#define PFORCE_FREQ			47
-	
+	#define PSHELLNUM           48
+	#define PTIME_ACCUM         49
+
+	#define PSECOND_VOLUME      50
+
 
 	// Vector params
 	#define PVOLMIN				0
@@ -117,6 +121,9 @@
 	#define PPOINT_GRAV_POS		11	
 	#define PPLANE_GRAV_DIR		12	
 
+	#define PINITMIN2			13
+	#define PINITMAX2			14
+
 	// Booleans
 	#define PRUN				0
 	#define PDEBUG				1	
@@ -129,6 +136,7 @@
 	#define PPLANE_GRAV_ON		11	
 	#define PPROFILE			12
 	#define PCAPTURE			13
+	#define PDRAW_SOLID         14
 
 	#define BFLUID				2
 
@@ -166,10 +174,11 @@
 		void DrawCircle ( Vector3DF pos, float r, Vector3DF clr, Camera3D& cam );
 
 		// Particle Utilities
-		void AllocateParticles ( int cnt );
+		void AllocateParticles ( int cnt, int shellCnt );
 		int AddParticle ();
 		void AddEmit ( float spacing );
 		int NumPoints ()		{ return mNumPoints; }
+		int NumShellPoints()    { return mNumShellPoints; }
 		
 		// Setup
 		void Setup ( bool bStart );
@@ -178,6 +187,7 @@
 		void SetupDefaultParams ();
 		void SetupExampleParams ( bool bStart );
 		void SetupSpacing ();
+		void SetupShell();
 		void SetupAddVolume ( Vector3DF min, Vector3DF max, float spacing, float offs );
 		void SetupGridAllocate ( Vector3DF min, Vector3DF max, float sim_scale, float cell_size, float border );
 		void ParseXML ( std::string name, int id, bool bStart );
@@ -256,6 +266,9 @@
 		void ComputeForceSlow ();				// O(n^2)
 		//void SPH_ComputeForceGrid ();				// O(kn) - spatial grid
 
+		void PositionShellParticles();
+		void AccumulateRigidForces();
+
 		// Recording
 		void StartRecord ();
 		void StartPlayback ( int p );
@@ -302,9 +315,10 @@
 
 		// Particle Buffers
 		int						mNumPoints;
+		int				        mNumShellPoints;
 		int						mMaxPoints;
 		int						mGoodPoints;
-		Vector3DF*				mPos;
+		Vector3DF				*mPos, *mPosShell;
 		DWORD*					mClr;
 		Vector3DF*				mVel;
 		Vector3DF*				mVelEval;
@@ -312,6 +326,7 @@
 		float*					mPressure;
 		float*					mDensity;
 		Vector3DF*				mForce;
+		Vector3DF*              mForceShell;
 		uint*					mGridCell;
 		uint*					mClusterCell;
 		uint*					mGridNext;
