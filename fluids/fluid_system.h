@@ -214,6 +214,7 @@
 		
 		void Advance ();
 		void EmitParticles ();
+		void ColorParticles();
 		void Exit ();
 		void TransferToCUDA ();
 		void TransferFromCUDA ();

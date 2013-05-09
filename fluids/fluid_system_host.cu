@@ -224,6 +224,11 @@ void FluidParamCUDA ( float ss, float sr, float pr, float mass, float rest, floa
 	cudaThreadSynchronize ();
 }
 
+//void CopyShellToCUDA( float* shellPos, int numShellPts )
+//{
+//	CUDA_SAFE_CALL( cudaMemcpy ( fbuf.mposshell, shellPos, numShellPts*sizeof(float)*3, cudaMemcpyHostToDevice ) );	
+//}
+
 void CopyToCUDA ( float* pos, float* vel, float* veleval, float* force, float* pressure, float* density, uint* cluster, uint* gnext, char* clr )
 {
 	// Send particle buffers

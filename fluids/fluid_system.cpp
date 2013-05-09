@@ -87,7 +87,7 @@ FluidSystem::FluidSystem ()
 	m_NeighborTable = 0x0;
 	m_NeighborDist = 0x0;
 	
-	m_Param [ PMODE ]		=  RUN_CPU_GRID; //RUN_CUDA_FULL; // RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
+	m_Param [ PMODE ]		=  RUN_CUDA_FULL; //RUN_CPU_GRID;//RUN_CUDA_FULL;//RUN_CPU_SLOW;
 	m_Param [ PEXAMPLE ]	= 1;
 	m_Param [ PGRID_DENSITY ] = 2.0;
 	m_Param [ PNUM ]		= 8192; //65536 * 128;
@@ -167,7 +167,7 @@ void FluidSystem::Setup ( bool bStart )
 
 		Sleep ( 500 );
 		
-		FluidSetupCUDA ( NumPoints(), m_GridSrch, *(int3*)& m_GridRes, *(float3*)& m_GridSize, *(float3*)& m_GridDelta, *(float3*)& m_GridMin, *(float3*)& m_GridMax, m_GridTotal, (int) m_Vec[PEMIT_RATE].x );
+		FluidSetupCUDA ( NumPoints() + NumShellPoints(), m_GridSrch, *(int3*)& m_GridRes, *(float3*)& m_GridSize, *(float3*)& m_GridDelta, *(float3*)& m_GridMin, *(float3*)& m_GridMax, m_GridTotal, (int) m_Vec[PEMIT_RATE].x );
 
 		Sleep ( 500 );
 
@@ -177,7 +177,7 @@ void FluidSystem::Setup ( bool bStart )
 		TransferToCUDA ();		// Initial transfer
 	#endif
 
-	bfw.InitPhysics();
+
 }
 
 void FluidSystem::Exit ()
@@ -616,7 +616,7 @@ void FluidSystem::PositionShellParticles()
 		
 	for( int i=0; i<NumShellPoints(); i++ )
 	{
-		Vector3DF p = bfw.m_shellParticles[i];
+		Vector3DF p = bfw.m_shellParticles[i];	
 		btVector3 localPos( p.x, p.y, p.z );
 		localPos = boxRot * localPos;
 
@@ -699,6 +699,8 @@ void FluidSystem::RunSimulateCPUGrid ()
 	start.SetSystemTime ( ACC_NSEC );
 	Advance ();
 	record ( PTIME_ADVANCE, "Advance CPU", start );
+	AccumulateRigidForces();
+	record( PTIME_ACCUM, "Accumulate Forces", start );
 }
 
 void FluidSystem::RunSimulateCUDARadix ()
@@ -750,6 +752,7 @@ void FluidSystem::RunSimulateCUDAFull ()
 	start.SetSystemTime ( ACC_NSEC );
 	AdvanceCUDA ( m_Time, m_DT, m_Param[PSIMSCALE] );			
 	record ( PTIME_ADVANCE, "Advance CUDA", start );
+	AccumulateRigidForces();
 	TransferFromCUDA ();	// return for rendering			
 }
 
@@ -787,6 +790,52 @@ void FluidSystem::EmitParticles ()
 	//}
 }
 
+void FluidSystem::ColorParticles()
+{
+
+	static double maxR = 0; static double minR = 1e99;
+	static double maxG = 0; static double minG = 1e99;
+	static double maxB = 0; static double minB = 1e99;
+	
+	double avg = 0;
+
+	for(int i=0; i<NumPoints(); i++)
+	{
+		double r = fabs((*(mPressure+i)));//.x);
+		double g = fabs((*(mPressure+i)));//.y);
+		double b = fabs((*(mPressure+i)));//.z);
+
+		double sum = (r+b+g);
+		static double avg = 0;
+
+		avg = (0.99999*avg) + (0.00001*sum);
+
+		//if( r>maxR ){ maxR = r; }if( r<minR ){ minR = r; }
+		//if( g>maxG ){ maxG = g; }if( g<minG ){ minG = g; }
+		//if( b>maxB ){ maxB = b; }if( b<minB ){ minB = b; }
+		
+		//maxR *= 0.999;
+
+		double deltaR = (maxR-minR);
+		double deltaG = (maxG-minG);
+		double deltaB = (maxB-minB);
+				
+		if( deltaR < 0.00000001 ) deltaR = 0.00000001;
+		if( deltaG < 0.00000001 ) deltaG = 0.00000001;
+		if( deltaB < 0.00000001 ) deltaB = 0.00000001;
+
+		double rr = (r / avg) * 255;
+		double gg = (g / avg) * 255;
+		double bb = (b / avg) * 255;
+
+		*(mClr + i) = COLORA(rr,gg,bb,200);   
+	}
+				
+
+
+	
+
+}
 
 void FluidSystem::Run (int width, int height)
 {
@@ -812,6 +861,7 @@ void FluidSystem::Run (int width, int height)
 	};
 
 	EmitParticles ();
+	ColorParticles();
 
 	/*if ( mMode == RUN_RECORD ) {
 		start.SetSystemTime ( ACC_NSEC );
@@ -2133,7 +2183,7 @@ btMatrix3x3& boxRot = boxRigidBody->getWorldTransform().getBasis();
 //////////////								cam );
 //////////////}
 
-if( m_Toggle[PDRAW_SOLID] )
+//if( m_Toggle[PDRAW_SOLID] )
 
 	for( int i=0; i<NumShellPoints(); i++ )
 	{

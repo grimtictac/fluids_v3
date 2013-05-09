@@ -32,6 +32,7 @@
 	// Particle & Grid Buffers
 	struct bufList {
 		float3*			mpos;
+		float3*         mposshell;
 		float3*			mvel;
 		float3*			mveleval;
 		float3*			mforce;
