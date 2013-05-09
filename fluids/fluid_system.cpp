@@ -121,22 +121,34 @@ void FluidSystem::Setup ( bool bStart )
 
 	ClearNeighborTable ();
 	mNumPoints = 0;
-	mNumShellPoints = m_Param[PSHELLNUM];
 	
 	SetupDefaultParams ();
 	
 	SetupExampleParams ( bStart );
+
+	SetupKernels ();
+	
+	SetupSpacing ();
+	
+	RigidParams p;
+
+	p.halfExtent = 1.4;
+	p.spacing = m_Param[PSPACING];
+	
+	bfw.InitPhysics( p );
+
+	m_Param[PSHELLNUM] = p.numShellParticles;
+
+	mNumShellPoints = m_Param[PSHELLNUM];
 
 	m_Param [PGRIDSIZE] = 2*m_Param[PSMOOTHRADIUS] / m_Param[PGRID_DENSITY];
 
 	AllocateParticles ( m_Param[PNUM], m_Param[PSHELLNUM] );
 	AllocatePackBuf ();
 
-	SetupShell();
-	
-	SetupKernels ();
-	
-	SetupSpacing ();
+	PositionShellParticles();
+
+	//SetupShell();
 
 	SetupAddVolume ( m_Vec[PINITMIN], m_Vec[PINITMAX], m_Param[PSPACING], 0.1 );													// Create the particles
 	
