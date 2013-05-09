@@ -13,7 +13,7 @@
 #define SCALING 1.
 
 
-void BulletFluidWrapper::InitPhysics()
+void BulletFluidWrapper::InitPhysics( RigidParams& params )
 {
 	//setTexturing(true);
 	//setShadows(true);
@@ -71,7 +71,7 @@ void BulletFluidWrapper::InitPhysics()
 			colShape->calculateLocalInertia(mass,localInertia);
 
 		float start_x = 0; // START_POS_X - ARRAY_SIZE_X/2;
-		float start_y = 25; //START_POS_Y;
+		float start_y = 45; //START_POS_Y;
 		float start_z = 0; //START_POS_Z - ARRAY_SIZE_Z/2;
 
 		//for (int k=0;k<ARRAY_SIZE_Y;k++)
@@ -102,20 +102,77 @@ void BulletFluidWrapper::InitPhysics()
 	//		}
 	}
 
-	InitShell();
+	InitShell( params.halfExtent, params.spacing );
+
+	params.numShellParticles = m_numShellParticles;
 }
 
-void BulletFluidWrapper::InitShell()
+void BulletFluidWrapper::InitShell( double halfExtent, double spacing )
 {
+/*
+	double extent = halfExtent * 2;
 
-	m_numShellParticles = 10000;
+	spacing/=25;
+
+
+	int halfWidthParticleCount = int(floor(extent/spacing));
+
+	m_numShellParticles = pow( double(halfWidthParticleCount) + 1, 3 );
 	m_shellParticles = new Vector3DF[m_numShellParticles];
+
+
+	Vector3DF pos;
+	int n, p;
+	float dx, dy, dz, x, y, z;
+	int cntx, cnty, cntz;
+	cntx = ceil( extent / spacing );
+	cntz = ceil( extent / spacing );
+	int cnt = cntx * cntz;
+	int xp, yp, zp, c2;
+	float odd;
+		
+
+	dx = extent;
+	dy = extent;
+	dz = extent;
+	
+	c2 = cnt/2;
+
+	int i=0;
+
+	for (float y = -halfExtent; y <= halfExtent; y += spacing ) {	
+		for (int xz=0; xz < cnt; xz++ ) {
+			
+			x = -halfExtent + (xz % int(cntx))*spacing;
+			z = -halfExtent + (xz / int(cntx))*spacing;
+
+			m_shellParticles[i++] = Vector3DF( x , y , z );
+		}
+	}
+
+*/
+
+	//int halfWidthParticleCount = int(floor(halfExtent/spacing));
+
+	//m_numShellParticles = pow( double(2*halfWidthParticleCount) + 1, 3 );
+	//m_shellParticles = new Vector3DF[m_numShellParticles];
+
+	//int i=0;
+
+	//for(double x=-halfExtent; x<halfExtent; x+=spacing)	
+	//	for(double y=-halfExtent; y<halfExtent; y+=spacing)
+	//		for(double z=-halfExtent; z<halfExtent; z+=spacing) m_shellParticles[i++] = Vector3DF( x , y , z );		
+	//
+
+	m_numShellParticles = 100;
+    m_shellParticles = new Vector3DF[m_numShellParticles];
+
 
 	for(int i=0; i<m_numShellParticles; i++)
 	{
-		float x = (float(rand()%1000)/400)-10; //sin(float(i)) +  
-		float y = (float(rand()%1000)/300)-10;
-		float z = (float(rand()%1000)/200)-10; //cos(float(i)) + 
+		float x = (float(rand()%1000)/40000)-10; //sin(float(i)) +  
+		float y = (float(rand()%1000)/30000)-10;
+		float z = (float(rand()%1000)/20000)-10; //cos(float(i)) + 
 
 
 		m_shellParticles[i] = Vector3DF( x , y , z );
@@ -129,7 +186,8 @@ void BulletFluidWrapper::RunPhysics(double dT)
 	static float bouy = 0;
 	bouy += 0.01;
 	
-	//m_body->applyForce(btVector3(0,1,5),btVector3(cos(bouy),0,sin(bouy)) );
+	//m_body->applyForce(btVector3(0,0, 2),btVector3(1,0,0) );
+	//m_body->applyForce(btVector3(0,0,-2),btVector3( 0.1,0,0) );
 
 	m_dynamicsWorld->stepSimulation( dT );
 }

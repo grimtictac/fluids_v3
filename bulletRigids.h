@@ -4,6 +4,12 @@
 #include "btBulletDynamicsCommon.h"
 #include "vector.h"
 
+struct RigidParams
+{
+	double spacing;
+	double halfExtent;
+	double numShellParticles;
+};
 
 
 class BulletFluidWrapper
@@ -30,8 +36,8 @@ public:
 
 	btDefaultCollisionConfiguration* m_collisionConfiguration;
 
-	void InitShell();
-	void InitPhysics();
+	void InitShell( double radius, double spacing );
+	void InitPhysics( RigidParams& params );
 	void RunPhysics(double dT);
 
 
